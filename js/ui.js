@@ -1,4 +1,6 @@
-export function setupDropZone(dropZoneEl, inputEl, onFiles) {
+export function setupDropZone(dropZoneEl, inputEl, onFiles, options = {}) {
+  const isDisabled = typeof options.isDisabled === 'function' ? options.isDisabled : () => false;
+
   const stop = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -9,6 +11,9 @@ export function setupDropZone(dropZoneEl, inputEl, onFiles) {
   });
 
   dropZoneEl.addEventListener('dragover', () => {
+    if (isDisabled()) {
+      return;
+    }
     dropZoneEl.classList.add('is-dragging');
   });
 
@@ -18,10 +23,17 @@ export function setupDropZone(dropZoneEl, inputEl, onFiles) {
 
   dropZoneEl.addEventListener('drop', (event) => {
     dropZoneEl.classList.remove('is-dragging');
+    if (isDisabled()) {
+      return;
+    }
     onFiles?.(event.dataTransfer?.files || []);
   });
 
   const openPicker = (event) => {
+    if (isDisabled()) {
+      return;
+    }
+
     if (event.target === inputEl || event.defaultPrevented) {
       return;
     }
@@ -38,6 +50,10 @@ export function setupDropZone(dropZoneEl, inputEl, onFiles) {
 
   dropZoneEl.addEventListener('click', openPicker);
   dropZoneEl.addEventListener('keydown', (event) => {
+    if (isDisabled()) {
+      return;
+    }
+
     if (event.target !== dropZoneEl) {
       return;
     }
@@ -51,6 +67,10 @@ export function setupDropZone(dropZoneEl, inputEl, onFiles) {
   });
 
   inputEl.addEventListener('change', () => {
+    if (isDisabled()) {
+      inputEl.value = '';
+      return;
+    }
     onFiles?.(inputEl.files);
   });
 }

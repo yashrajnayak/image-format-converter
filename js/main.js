@@ -5,10 +5,11 @@ import {
   getOutputFormatById,
   getSupportedOutputFormats,
   inferConvertibleInputFormatId,
+  measureImageFile,
   isSupportedInputFile,
 } from './converter.js';
 import { createPreviewTile, setupDropZone } from './ui.js';
-import { sleep } from './utils.js';
+import { formatBytes } from './utils.js';
 
 const fileInput = document.getElementById('file-input');
 const dropZone = document.getElementById('drop-zone');
@@ -22,12 +23,20 @@ const root = document.documentElement;
 const toggle = document.getElementById('themeSwitch');
 
 const THEME_KEY = 'ys-theme';
+const MEGAPIXEL = 1_000_000;
+const SELECTION_LIMITS = {
+  maxFiles: 30,
+  maxTotalBytes: 100 * 1024 * 1024,
+  maxTotalMegapixels: 120,
+};
 
 const state = {
   entries: [],
   skippedCount: 0,
   isConverting: false,
   selectionToken: 0,
+  conversionToken: 0,
+  conversionController: null,
   nextEntryId: 0,
   mode: 'convert',
   outputFormats: [],
@@ -39,9 +48,28 @@ const setStatus = (text) => {
   statusEl.textContent = text;
 };
 
+const normalizeTheme = (theme) => (theme === 'dark' ? 'dark' : 'light');
+
+const readStoredTheme = () => {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredTheme = (theme) => {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // localStorage may be unavailable in some browser privacy contexts.
+  }
+};
+
 const setTheme = (theme) => {
-  root.setAttribute('data-theme', theme);
-  localStorage.setItem(THEME_KEY, theme);
+  const normalizedTheme = normalizeTheme(theme);
+  root.setAttribute('data-theme', normalizedTheme);
+  writeStoredTheme(normalizedTheme);
 };
 
 const rememberObjectUrl = (blob) => {
@@ -69,6 +97,21 @@ const triggerDownload = (url, filename) => {
   anchor.click();
   anchor.remove();
 };
+
+const setDropZoneInteractionsDisabled = (disabled) => {
+  dropZone.classList.toggle('is-disabled', disabled);
+  dropZone.classList.remove('is-dragging');
+  dropZone.setAttribute('aria-disabled', String(disabled));
+  dropZone.tabIndex = disabled ? -1 : 0;
+  fileInput.disabled = disabled;
+};
+
+const isActiveConversion = (token, controller) => (
+  state.isConverting &&
+  state.conversionToken === token &&
+  state.conversionController === controller &&
+  !controller.signal.aborted
+);
 
 const getPendingEntries = () => state.entries.filter((entry) => !entry.converted && !entry.failed);
 const getConvertedEntries = () => state.entries.filter((entry) => entry.converted && entry.downloadUrl);
@@ -159,6 +202,7 @@ function updateControls() {
   const availableFormats = syncFormatOptions();
   const hasAvailableFormats = availableFormats.length > 0;
   const hasEntries = state.entries.length > 0;
+  setDropZoneInteractionsDisabled(state.isConverting);
   if (formatControl) {
     formatControl.hidden = !hasEntries;
   }
@@ -234,6 +278,20 @@ function clearEntries() {
   clearDropZonePreviewContainer();
 }
 
+function cancelActiveConversion() {
+  if (!state.isConverting && !state.conversionController) {
+    return;
+  }
+
+  state.isConverting = false;
+  state.conversionToken += 1;
+  if (state.conversionController) {
+    state.conversionController.abort();
+    state.conversionController = null;
+  }
+  updateControls();
+}
+
 function resetConvertedState(statusMessage) {
   state.entries.forEach((entry) => {
     releaseObjectUrl(entry.downloadUrl);
@@ -297,7 +355,64 @@ function createEntry(file) {
   return entry;
 }
 
-async function downloadAllConverted() {
+function getTotalBytes(files) {
+  return files.reduce((sum, file) => sum + (Number.isFinite(file?.size) ? file.size : 0), 0);
+}
+
+function buildLimitSummary(supportedCount, totalBytes) {
+  return `Limit: ${SELECTION_LIMITS.maxFiles} files, ${formatBytes(SELECTION_LIMITS.maxTotalBytes)} total, ${SELECTION_LIMITS.maxTotalMegapixels} MP total. You selected ${supportedCount} files and ${formatBytes(totalBytes)}.`;
+}
+
+async function validateSelectionLimits(files, token) {
+  if (files.length > SELECTION_LIMITS.maxFiles) {
+    const totalBytes = getTotalBytes(files);
+    return {
+      ok: false,
+      message: `Too many files in one batch. ${buildLimitSummary(files.length, totalBytes)}`,
+    };
+  }
+
+  const totalBytes = getTotalBytes(files);
+  if (totalBytes > SELECTION_LIMITS.maxTotalBytes) {
+    return {
+      ok: false,
+      message: `Total file size is too large. ${buildLimitSummary(files.length, totalBytes)}`,
+    };
+  }
+
+  let totalPixels = 0;
+  for (let index = 0; index < files.length; index += 1) {
+    if (token !== state.selectionToken) {
+      return { ok: false, cancelled: true };
+    }
+
+    const file = files[index];
+    setStatus(`Inspecting image dimensions ${index + 1}/${files.length}...`);
+
+    let metrics;
+    try {
+      metrics = await measureImageFile(file);
+    } catch {
+      return {
+        ok: false,
+        message: `Could not read image dimensions for "${file.name}". Please remove it and try again.`,
+      };
+    }
+
+    totalPixels += metrics.pixelCount;
+    if (totalPixels > SELECTION_LIMITS.maxTotalMegapixels * MEGAPIXEL) {
+      const totalMegapixels = (totalPixels / MEGAPIXEL).toFixed(1);
+      return {
+        ok: false,
+        message: `Total image resolution is too high (${totalMegapixels} MP). Limit is ${SELECTION_LIMITS.maxTotalMegapixels} MP.`,
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+function downloadAllConverted() {
   const converted = getConvertedEntries();
   if (!converted.length) {
     return;
@@ -305,13 +420,20 @@ async function downloadAllConverted() {
 
   for (const entry of converted) {
     triggerDownload(entry.downloadUrl, entry.outputName);
-    await sleep(45);
   }
 
-  setStatus(converted.length > 1 ? `Download started for ${converted.length} files.` : 'Download started.');
+  setStatus(
+    converted.length > 1
+      ? `Download started for ${converted.length} files. If your browser blocks some files, allow multiple downloads for this site.`
+      : 'Download started.'
+  );
 }
 
 async function runConversion() {
+  if (state.isConverting) {
+    return;
+  }
+
   const pending = getPendingEntries();
   if (!pending.length) {
     return;
@@ -323,6 +445,9 @@ async function runConversion() {
     return;
   }
 
+  const conversionToken = ++state.conversionToken;
+  const controller = new AbortController();
+  state.conversionController = controller;
   state.isConverting = true;
   state.entries.forEach((entry) => {
     entry.tile.setRemoveDisabled(true);
@@ -338,10 +463,17 @@ async function runConversion() {
   setStatus(`Converting ${completed}/${total} file(s) to ${outputFormat.label}...`);
 
   for (const entry of pending) {
+    if (!isActiveConversion(conversionToken, controller)) {
+      return;
+    }
+
     entry.tile.setProcessing(true);
 
     try {
       const result = await convertImageFile(entry.file, { format: outputFormat });
+      if (!isActiveConversion(conversionToken, controller)) {
+        return;
+      }
 
       entry.converted = true;
       entry.failed = false;
@@ -351,17 +483,27 @@ async function runConversion() {
       entry.downloadUrl = rememberObjectUrl(result.blob);
       completed += 1;
     } catch {
+      if (!isActiveConversion(conversionToken, controller)) {
+        return;
+      }
       entry.failed = true;
       entry.converted = false;
       entry.tile.setFallback('Conversion failed');
       failed += 1;
     } finally {
       entry.tile.setProcessing(false);
-      setStatus(`Converting ${completed}/${total} file(s) to ${outputFormat.label}...`);
+      if (isActiveConversion(conversionToken, controller)) {
+        setStatus(`Converting ${completed}/${total} file(s) to ${outputFormat.label}...`);
+      }
     }
   }
 
+  if (!isActiveConversion(conversionToken, controller)) {
+    return;
+  }
+
   state.isConverting = false;
+  state.conversionController = null;
 
   const converted = getConvertedEntries();
   const showTileDownloads = converted.length > 1;
@@ -402,7 +544,7 @@ async function handleIncomingFiles(fileList) {
 
   const token = ++state.selectionToken;
 
-  state.isConverting = false;
+  cancelActiveConversion();
   state.skippedCount = 0;
   setPrimaryMode('convert');
   clearEntries();
@@ -414,6 +556,16 @@ async function handleIncomingFiles(fileList) {
 
   if (!supported.length) {
     setStatus(`Please add supported image files.${unsupported.length ? ` ${unsupported.length} skipped.` : ''}`);
+    updateControls();
+    return;
+  }
+
+  const limitCheck = await validateSelectionLimits(supported, token);
+  if (limitCheck.cancelled) {
+    return;
+  }
+  if (!limitCheck.ok) {
+    setStatus(`${limitCheck.message}${unsupported.length ? ` ${unsupported.length} skipped.` : ''}`);
     updateControls();
     return;
   }
@@ -485,7 +637,7 @@ function bindToolbarEvents() {
 
   convertButton.addEventListener('click', async () => {
     if (state.mode === 'download') {
-      await downloadAllConverted();
+      downloadAllConverted();
       return;
     }
 
@@ -494,7 +646,7 @@ function bindToolbarEvents() {
 
   clearButton.addEventListener('click', () => {
     state.selectionToken += 1;
-    state.isConverting = false;
+    cancelActiveConversion();
     state.skippedCount = 0;
     setPrimaryMode('convert');
     clearEntries();
@@ -509,7 +661,7 @@ async function initOutputFormats() {
 }
 
 function initTheme() {
-  const initialTheme = localStorage.getItem(THEME_KEY) || 'light';
+  const initialTheme = normalizeTheme(readStoredTheme());
   setTheme(initialTheme);
 
   toggle?.addEventListener('click', () => {
@@ -526,7 +678,9 @@ async function init() {
   await initOutputFormats();
   bindToolbarEvents();
 
-  setupDropZone(dropZone, fileInput, handleIncomingFiles);
+  setupDropZone(dropZone, fileInput, handleIncomingFiles, {
+    isDisabled: () => state.isConverting,
+  });
 
   window.addEventListener('resize', () => {
     updateDropZonePreviewLayout();

@@ -280,6 +280,20 @@ async function decodeBitmap(file) {
   }
 }
 
+export async function measureImageFile(file) {
+  const decoded = await decodeBitmap(file);
+
+  try {
+    return {
+      width: decoded.width,
+      height: decoded.height,
+      pixelCount: decoded.width * decoded.height,
+    };
+  } finally {
+    decoded.close();
+  }
+}
+
 function buildOutputName(sourceName, extension) {
   return `${stripFileExtension(sourceName)}.${extension}`;
 }
