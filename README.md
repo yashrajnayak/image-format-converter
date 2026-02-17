@@ -2,6 +2,8 @@
 
 Minimal browser-only AVIF to PNG converter built with plain HTML, CSS, and JavaScript.
 
+<img width="1660" height="999" alt="image" src="https://github.com/user-attachments/assets/f50596e7-d49a-40d4-abb6-3bc7ded2f5d9" />
+
 ## Features
 
 - Full-page drop/upload area
