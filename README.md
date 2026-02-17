@@ -35,7 +35,7 @@ UI footer format summary:
 - `favicon.svg` — app favicon
 - `styles.css` — app-specific styling using design-system tokens
 - `vendor/yashrajnayak-design-system.css` — bundled design system
-- `config/app-config.json` — runtime feature flags and selection limits
+- `config/app-config.json` — runtime configuration (features, limits, conversion, UI text)
 - `js/app-config.js` — config loader + normalization
 - `js/main.js` — app state, events, conversion flow
 - `js/converter.js` — format detection and image conversion pipeline
@@ -71,6 +71,17 @@ Update `config/app-config.json` to change behavior without touching app logic:
 - `features.bulkDownload` — enable **Download/Download All** action mode
 - `features.heicDecoder` — enable runtime HEIC decoder usage
 - `limits.maxFiles`, `limits.maxTotalBytes`, `limits.maxTotalMegapixels` — batch guardrails
+- `conversion.inputAccept` — file picker `accept` filter
+- `conversion.supportedInputExtensions` — extension fallback list for support checks
+- `conversion.outputFormats` — configurable output format catalog (`id`, `label`, `extension`, `mimeType`, `lossy`)
+- `conversion.previewMaxEdge` — preview thumbnail max dimension
+- `conversion.defaultLossyQuality` — lossy output quality (`0` to `1`)
+- `conversion.heicDecoderUrl` — HEIC decoder script URL
+- `ui.heroTitle`, `ui.heroSubtitle` — page heading copy
+- `ui.labels.*` — control labels (`formatControl`, `convert`, `clear`, `download`, `downloadAll`)
+- `ui.footer.*` — footer format summary copy
+- `ui.messages.multiDownloadHint` — hint text shown after batch download starts
+- `ui.github.*` — GitHub CTA + stars + credits links/text (`repoUrl`, `repoApiUrl`, `starCtaText`, `starsLoadingText`, `starsUnavailableText`, `starsSuffixText`, `creditsPrefix`, `profileUrl`, `profileName`)
 
 ## Design system usage
 

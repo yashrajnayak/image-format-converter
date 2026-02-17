@@ -321,6 +321,30 @@ body {
   font-weight: 600;
 }
 
+.app-footer__line--links,
+.app-footer__line--credits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.app-footer__separator {
+  color: var(--ys-color-border);
+}
+
+.app-footer__link {
+  color: var(--ys-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.app-footer__link:hover,
+.app-footer__link:focus-visible {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .app {
     padding-top: 4.65rem;

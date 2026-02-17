@@ -12,5 +12,84 @@
     "maxFiles": 30,
     "maxTotalBytes": 104857600,
     "maxTotalMegapixels": 120
+  },
+  "conversion": {
+    "inputAccept": ".png,.jpg,.jpeg,.jfif,.webp,.apng,.gif,.bmp,.ico,.avif,.avifs,.heic,.heif,.hiec,.hic,.hif,.tif,.tiff,.svg,image/*",
+    "supportedInputExtensions": [
+      "png",
+      "jpg",
+      "jpeg",
+      "jfif",
+      "webp",
+      "apng",
+      "gif",
+      "bmp",
+      "ico",
+      "avif",
+      "avifs",
+      "heic",
+      "heif",
+      "hiec",
+      "hic",
+      "hif",
+      "tif",
+      "tiff",
+      "svg"
+    ],
+    "outputFormats": [
+      {
+        "id": "png",
+        "label": "PNG",
+        "extension": "png",
+        "mimeType": "image/png",
+        "lossy": false
+      },
+      {
+        "id": "jpeg",
+        "label": "JPEG",
+        "extension": "jpg",
+        "mimeType": "image/jpeg",
+        "lossy": true
+      },
+      {
+        "id": "webp",
+        "label": "WebP",
+        "extension": "webp",
+        "mimeType": "image/webp",
+        "lossy": true
+      }
+    ],
+    "previewMaxEdge": 420,
+    "defaultLossyQuality": 0.92,
+    "heicDecoderUrl": "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"
+  },
+  "ui": {
+    "heroTitle": "Image Format Converter",
+    "heroSubtitle": "Convert one or many images between popular formats in your browser.",
+    "labels": {
+      "formatControl": "Convert To",
+      "convert": "Convert",
+      "clear": "Clear",
+      "download": "Download",
+      "downloadAll": "Download All"
+    },
+    "footer": {
+      "inputFormats": "PNG, JPG/JPEG/JFIF, WebP, APNG, GIF, BMP, ICO, AVIF/AVIFS, HEIC/HEIF/HIEC/HIC/HIF, TIFF, SVG.",
+      "outputFormats": "PNG, JPEG, WebP (browser-dependent)."
+    },
+    "messages": {
+      "multiDownloadHint": "If your browser blocks some files, allow multiple downloads for this site."
+    },
+    "github": {
+      "repoUrl": "https://github.com/yashrajnayak/image-format-converter",
+      "repoApiUrl": "https://api.github.com/repos/yashrajnayak/image-format-converter",
+      "starCtaText": "Star this repo on GitHub",
+      "starsLoadingText": "Loading stars...",
+      "starsUnavailableText": "Stars unavailable",
+      "starsSuffixText": "stars",
+      "creditsPrefix": "Created by",
+      "profileUrl": "https://github.com/yashrajnayak",
+      "profileName": "Yashraj Nayak"
+    }
   }
 }

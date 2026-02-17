@@ -32,8 +32,8 @@
 
     <main class="app">
       <header class="app-hero">
-        <h1 class="app-title ys-page-title">Image Format Converter</h1>
-        <p class="app-subtitle ys-page-subtitle">Convert one or many images between popular formats in your browser.</p>
+        <h1 id="app-title" class="app-title ys-page-title">Image Format Converter</h1>
+        <p id="app-subtitle" class="app-subtitle ys-page-subtitle">Convert one or many images between popular formats in your browser.</p>
       </header>
 
       <section
@@ -60,7 +60,7 @@
         <div class="toolbar">
           <div class="toolbar__actions">
             <label class="toolbar__format" id="format-control" for="format-select" hidden>
-              <span class="toolbar__format-label">Convert To</span>
+              <span id="format-label" class="toolbar__format-label">Convert To</span>
               <select id="format-select" class="toolbar__format-select" aria-label="Output format"></select>
             </label>
             <button id="convert-btn" type="button" class="ys-button ys-button--primary" disabled hidden>Convert</button>
@@ -73,11 +73,32 @@
       <footer class="app-footer" aria-label="Supported formats">
         <p class="app-footer__line">
           <span class="app-footer__label">Input formats:</span>
-          PNG, JPG/JPEG/JFIF, WebP, APNG, GIF, BMP, ICO, AVIF/AVIFS, HEIC/HEIF/HIEC/HIC/HIF, TIFF, SVG.
+          <span id="footer-input-formats">PNG, JPG/JPEG/JFIF, WebP, APNG, GIF, BMP, ICO, AVIF/AVIFS, HEIC/HEIF/HIEC/HIC/HIF, TIFF, SVG.</span>
         </p>
         <p class="app-footer__line">
           <span class="app-footer__label">Output formats:</span>
-          PNG, JPEG, WebP (browser-dependent).
+          <span id="footer-output-formats">PNG, JPEG, WebP (browser-dependent).</span>
+        </p>
+        <p class="app-footer__line app-footer__line--links">
+          <a
+            id="repo-star-link"
+            class="app-footer__link"
+            href="https://github.com/yashrajnayak/image-format-converter"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Star this repo on GitHub</a>
+          <span class="app-footer__separator" aria-hidden="true">•</span>
+          <span id="repo-stars">Loading stars...</span>
+        </p>
+        <p class="app-footer__line app-footer__line--credits">
+          <span id="footer-credits-prefix">Created by</span>
+          <a
+            id="footer-credits-profile-link"
+            class="app-footer__link"
+            href="https://github.com/yashrajnayak"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Yashraj Nayak</a>
         </p>
       </footer>
     </main>

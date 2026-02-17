@@ -1,7 +1,8 @@
 import {
-  INPUT_ACCEPT,
+  configureConverter,
   createPreviewBlob,
   convertImageFile,
+  getInputAccept,
   getOutputFormatById,
   getSupportedOutputFormats,
   inferConvertibleInputFormatId,
@@ -22,6 +23,15 @@ const convertButton = document.getElementById('convert-btn');
 const clearButton = document.getElementById('clear-btn');
 const root = document.documentElement;
 const toggle = document.getElementById('themeSwitch');
+const appTitleEl = document.getElementById('app-title');
+const appSubtitleEl = document.getElementById('app-subtitle');
+const formatLabelEl = document.getElementById('format-label');
+const footerInputFormatsEl = document.getElementById('footer-input-formats');
+const footerOutputFormatsEl = document.getElementById('footer-output-formats');
+const repoStarLinkEl = document.getElementById('repo-star-link');
+const repoStarsEl = document.getElementById('repo-stars');
+const footerCreditsPrefixEl = document.getElementById('footer-credits-prefix');
+const footerCreditsProfileLinkEl = document.getElementById('footer-credits-profile-link');
 
 const THEME_KEY = 'ys-theme';
 const MEGAPIXEL = 1_000_000;
@@ -49,8 +59,19 @@ const featureEnabled = (flag) => Boolean(state.config?.features?.[flag]);
 
 const getSelectionLimits = () => state.config?.limits || DEFAULT_APP_CONFIG.limits;
 
+const getConversionConfig = () => state.config?.conversion || DEFAULT_APP_CONFIG.conversion;
+
+const getUiConfig = () => state.config?.ui || DEFAULT_APP_CONFIG.ui;
+
+const getUiLabels = () => getUiConfig().labels;
+
+const getUiMessages = () => getUiConfig().messages;
+
+const getGithubUiConfig = () => getUiConfig().github;
+
 const getDecodeOptions = () => ({
   enableHeicDecoder: featureEnabled('heicDecoder'),
+  heicDecoderUrl: getConversionConfig().heicDecoderUrl,
 });
 
 const allowBulkDownload = () => featureEnabled('bulkDownload');
@@ -78,6 +99,80 @@ const setTheme = (theme) => {
   root.setAttribute('data-theme', normalizedTheme);
   writeStoredTheme(normalizedTheme);
 };
+
+function formatCount(value) {
+  return Number(value).toLocaleString('en-US');
+}
+
+function applyUiConfig() {
+  const ui = getUiConfig();
+  const github = getGithubUiConfig();
+
+  if (appTitleEl) {
+    appTitleEl.textContent = ui.heroTitle;
+  }
+  if (appSubtitleEl) {
+    appSubtitleEl.textContent = ui.heroSubtitle;
+  }
+  if (formatLabelEl) {
+    formatLabelEl.textContent = ui.labels.formatControl;
+  }
+  if (footerInputFormatsEl) {
+    footerInputFormatsEl.textContent = ui.footer.inputFormats;
+  }
+  if (footerOutputFormatsEl) {
+    footerOutputFormatsEl.textContent = ui.footer.outputFormats;
+  }
+
+  if (repoStarLinkEl) {
+    repoStarLinkEl.href = github.repoUrl;
+    repoStarLinkEl.textContent = github.starCtaText;
+  }
+
+  if (repoStarsEl) {
+    repoStarsEl.textContent = github.starsLoadingText;
+  }
+
+  if (footerCreditsPrefixEl) {
+    footerCreditsPrefixEl.textContent = github.creditsPrefix;
+  }
+
+  if (footerCreditsProfileLinkEl) {
+    footerCreditsProfileLinkEl.href = github.profileUrl;
+    footerCreditsProfileLinkEl.textContent = github.profileName;
+  }
+
+  clearButton.textContent = ui.labels.clear;
+}
+
+async function updateGithubStars() {
+  if (!repoStarsEl) {
+    return;
+  }
+
+  const github = getGithubUiConfig();
+  try {
+    const response = await fetch(github.repoApiUrl, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API request failed: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const stars = Number(payload.stargazers_count);
+    if (!Number.isFinite(stars)) {
+      throw new Error('GitHub API did not return a valid star count.');
+    }
+
+    repoStarsEl.textContent = `${formatCount(stars)} ${github.starsSuffixText}`;
+  } catch {
+    repoStarsEl.textContent = github.starsUnavailableText;
+  }
+}
 
 const rememberObjectUrl = (blob) => {
   const url = URL.createObjectURL(blob);
@@ -166,13 +261,14 @@ function syncFormatOptions() {
 }
 
 function setPrimaryMode(mode) {
+  const labels = getUiLabels();
   state.mode = allowBulkDownload() ? mode : 'convert';
   if (state.mode !== 'download') {
-    convertButton.textContent = 'Convert';
+    convertButton.textContent = labels.convert;
     return;
   }
 
-  convertButton.textContent = getConvertedEntries().length > 1 ? 'Download All' : 'Download';
+  convertButton.textContent = getConvertedEntries().length > 1 ? labels.downloadAll : labels.download;
 }
 
 function clearDropZonePreviewContainer() {
@@ -251,9 +347,10 @@ function updateReadyStatus() {
 
   const pendingCount = getPendingEntries().length;
   const convertedCount = getConvertedEntries().length;
+  const labels = getUiLabels();
 
   if (state.mode === 'download') {
-    const actionLabel = convertedCount > 1 ? 'Download All' : 'Download';
+    const actionLabel = convertedCount > 1 ? labels.downloadAll : labels.download;
     setStatus(
       `Conversion complete: ${convertedCount} ready${state.skippedCount ? `, ${state.skippedCount} skipped` : ''}. Click ${actionLabel} to save ${convertedCount > 1 ? 'all files' : 'the file'}.`
     );
@@ -453,7 +550,7 @@ function downloadAllConverted() {
 
   setStatus(
     converted.length > 1
-      ? `Download started for ${converted.length} files. If your browser blocks some files, allow multiple downloads for this site.`
+      ? `Download started for ${converted.length} files. ${getUiMessages().multiDownloadHint}`
       : 'Download started.'
   );
 }
@@ -502,6 +599,7 @@ async function runConversion() {
       const result = await convertImageFile(entry.file, {
         format: outputFormat,
         decodeOptions: getDecodeOptions(),
+        quality: getConversionConfig().defaultLossyQuality,
       });
       if (!isActiveConversion(conversionToken, controller)) {
         return;
@@ -624,7 +722,11 @@ async function handleIncomingFiles(fileList) {
     }
 
     try {
-      const previewBlob = await createPreviewBlob(activeEntry.file, 420, getDecodeOptions());
+      const previewBlob = await createPreviewBlob(
+        activeEntry.file,
+        getConversionConfig().previewMaxEdge,
+        getDecodeOptions()
+      );
       if (token !== state.selectionToken) {
         return;
       }
@@ -720,9 +822,19 @@ function initTheme() {
 
 async function init() {
   state.config = await loadAppConfig();
+  configureConverter({
+    inputAccept: getConversionConfig().inputAccept,
+    supportedInputExtensions: getConversionConfig().supportedInputExtensions,
+    outputFormats: getConversionConfig().outputFormats,
+    defaultLossyQuality: getConversionConfig().defaultLossyQuality,
+    heicDecoderUrl: getConversionConfig().heicDecoderUrl,
+  });
+
+  applyUiConfig();
+  void updateGithubStars();
   initTheme();
 
-  fileInput.accept = INPUT_ACCEPT;
+  fileInput.accept = getInputAccept();
 
   await initOutputFormats();
   bindToolbarEvents();
