@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AVIF to PNG Converter</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./vendor/yashrajnayak-design-system.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section
+        class="drop-zone"
+        id="drop-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Select AVIF files"
+      >
+        <div class="drop-zone__hero">
+          <h1 class="drop-zone__title ys-page-title">AVIF to PNG Converter</h1>
+          <p class="drop-zone__sub ys-page-subtitle">Convert one or many AVIF files in your browser.</p>
+          <p class="drop-zone__hint">Drop files anywhere on this page or click to select.</p>
+        </div>
+        <input
+          id="file-input"
+          class="file-input"
+          type="file"
+          accept=".avif,image/avif"
+          multiple
+        />
+        <div class="drop-zone__panel">
+          <div class="toolbar ys-card">
+            <div class="toolbar__actions">
+              <button id="convert-btn" type="button" class="ys-button ys-button--primary" disabled>Convert</button>
+              <button id="clear-btn" type="button" class="ys-button ys-button--secondary" disabled>Clear</button>
+              <button id="theme-btn" type="button" class="ys-button ys-button--ghost">Dark Theme</button>
+            </div>
+            <p id="status" aria-live="polite">Pick one or more AVIF files to begin.</p>
+          </div>
+          <section id="results" class="results" aria-live="polite"></section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
