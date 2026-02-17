@@ -8,6 +8,7 @@ import {
   measureImageFile,
   isSupportedInputFile,
 } from './converter.js';
+import { DEFAULT_APP_CONFIG, loadAppConfig } from './app-config.js';
 import { createPreviewTile, setupDropZone } from './ui.js';
 import { formatBytes } from './utils.js';
 
@@ -24,11 +25,6 @@ const toggle = document.getElementById('themeSwitch');
 
 const THEME_KEY = 'ys-theme';
 const MEGAPIXEL = 1_000_000;
-const SELECTION_LIMITS = {
-  maxFiles: 30,
-  maxTotalBytes: 100 * 1024 * 1024,
-  maxTotalMegapixels: 120,
-};
 
 const state = {
   entries: [],
@@ -42,11 +38,22 @@ const state = {
   outputFormats: [],
   outputFormatsSignature: '',
   objectUrls: new Set(),
+  config: DEFAULT_APP_CONFIG,
 };
 
 const setStatus = (text) => {
   statusEl.textContent = text;
 };
+
+const featureEnabled = (flag) => Boolean(state.config?.features?.[flag]);
+
+const getSelectionLimits = () => state.config?.limits || DEFAULT_APP_CONFIG.limits;
+
+const getDecodeOptions = () => ({
+  enableHeicDecoder: featureEnabled('heicDecoder'),
+});
+
+const allowBulkDownload = () => featureEnabled('bulkDownload');
 
 const normalizeTheme = (theme) => (theme === 'dark' ? 'dark' : 'light');
 
@@ -121,7 +128,7 @@ function getSelectedOutputFormat() {
 }
 
 function getFilteredOutputFormats() {
-  if (state.entries.length !== 1) {
+  if (!featureEnabled('singleFileFormatFiltering') || state.entries.length !== 1) {
     return state.outputFormats;
   }
 
@@ -159,8 +166,8 @@ function syncFormatOptions() {
 }
 
 function setPrimaryMode(mode) {
-  state.mode = mode;
-  if (mode !== 'download') {
+  state.mode = allowBulkDownload() ? mode : 'convert';
+  if (state.mode !== 'download') {
     convertButton.textContent = 'Convert';
     return;
   }
@@ -202,7 +209,7 @@ function updateControls() {
   const availableFormats = syncFormatOptions();
   const hasAvailableFormats = availableFormats.length > 0;
   const hasEntries = state.entries.length > 0;
-  setDropZoneInteractionsDisabled(state.isConverting);
+  setDropZoneInteractionsDisabled(featureEnabled('lockInputDuringConversion') && state.isConverting);
   if (formatControl) {
     formatControl.hidden = !hasEntries;
   }
@@ -249,6 +256,16 @@ function updateReadyStatus() {
     const actionLabel = convertedCount > 1 ? 'Download All' : 'Download';
     setStatus(
       `Conversion complete: ${convertedCount} ready${state.skippedCount ? `, ${state.skippedCount} skipped` : ''}. Click ${actionLabel} to save ${convertedCount > 1 ? 'all files' : 'the file'}.`
+    );
+    updateControls();
+    return;
+  }
+
+  if (!allowBulkDownload() && convertedCount > 0 && pendingCount === 0) {
+    setStatus(
+      featureEnabled('tileDownloads')
+        ? `Conversion complete: ${convertedCount} ready${state.skippedCount ? `, ${state.skippedCount} skipped` : ''}. Use the tile download button${convertedCount > 1 ? 's' : ''} to save file${convertedCount > 1 ? 's' : ''}.`
+        : `Conversion complete: ${convertedCount} ready${state.skippedCount ? `, ${state.skippedCount} skipped` : ''}.`
     );
     updateControls();
     return;
@@ -360,11 +377,18 @@ function getTotalBytes(files) {
 }
 
 function buildLimitSummary(supportedCount, totalBytes) {
-  return `Limit: ${SELECTION_LIMITS.maxFiles} files, ${formatBytes(SELECTION_LIMITS.maxTotalBytes)} total, ${SELECTION_LIMITS.maxTotalMegapixels} MP total. You selected ${supportedCount} files and ${formatBytes(totalBytes)}.`;
+  const limits = getSelectionLimits();
+  return `Limit: ${limits.maxFiles} files, ${formatBytes(limits.maxTotalBytes)} total, ${limits.maxTotalMegapixels} MP total. You selected ${supportedCount} files and ${formatBytes(totalBytes)}.`;
 }
 
 async function validateSelectionLimits(files, token) {
-  if (files.length > SELECTION_LIMITS.maxFiles) {
+  if (!featureEnabled('selectionLimits')) {
+    return { ok: true };
+  }
+
+  const limits = getSelectionLimits();
+
+  if (files.length > limits.maxFiles) {
     const totalBytes = getTotalBytes(files);
     return {
       ok: false,
@@ -373,7 +397,7 @@ async function validateSelectionLimits(files, token) {
   }
 
   const totalBytes = getTotalBytes(files);
-  if (totalBytes > SELECTION_LIMITS.maxTotalBytes) {
+  if (totalBytes > limits.maxTotalBytes) {
     return {
       ok: false,
       message: `Total file size is too large. ${buildLimitSummary(files.length, totalBytes)}`,
@@ -391,7 +415,7 @@ async function validateSelectionLimits(files, token) {
 
     let metrics;
     try {
-      metrics = await measureImageFile(file);
+      metrics = await measureImageFile(file, getDecodeOptions());
     } catch {
       return {
         ok: false,
@@ -400,11 +424,11 @@ async function validateSelectionLimits(files, token) {
     }
 
     totalPixels += metrics.pixelCount;
-    if (totalPixels > SELECTION_LIMITS.maxTotalMegapixels * MEGAPIXEL) {
+    if (totalPixels > limits.maxTotalMegapixels * MEGAPIXEL) {
       const totalMegapixels = (totalPixels / MEGAPIXEL).toFixed(1);
       return {
         ok: false,
-        message: `Total image resolution is too high (${totalMegapixels} MP). Limit is ${SELECTION_LIMITS.maxTotalMegapixels} MP.`,
+        message: `Total image resolution is too high (${totalMegapixels} MP). Limit is ${limits.maxTotalMegapixels} MP.`,
       };
     }
   }
@@ -413,6 +437,11 @@ async function validateSelectionLimits(files, token) {
 }
 
 function downloadAllConverted() {
+  if (!allowBulkDownload()) {
+    setStatus('Bulk download is disabled by configuration.');
+    return;
+  }
+
   const converted = getConvertedEntries();
   if (!converted.length) {
     return;
@@ -470,7 +499,10 @@ async function runConversion() {
     entry.tile.setProcessing(true);
 
     try {
-      const result = await convertImageFile(entry.file, { format: outputFormat });
+      const result = await convertImageFile(entry.file, {
+        format: outputFormat,
+        decodeOptions: getDecodeOptions(),
+      });
       if (!isActiveConversion(conversionToken, controller)) {
         return;
       }
@@ -506,7 +538,8 @@ async function runConversion() {
   state.conversionController = null;
 
   const converted = getConvertedEntries();
-  const showTileDownloads = converted.length > 1;
+  const showTileDownloads = featureEnabled('tileDownloads')
+    && (converted.length > 1 || !allowBulkDownload());
 
   state.entries.forEach((entry) => {
     entry.tile.setRemoveVisible(false);
@@ -524,7 +557,7 @@ async function runConversion() {
     entry.tile.setDownloadDisabled(false);
   });
 
-  setPrimaryMode(converted.length ? 'download' : 'convert');
+  setPrimaryMode(converted.length && allowBulkDownload() ? 'download' : 'convert');
 
   setStatus(
     `Done: ${completed} converted${failed ? `, ${failed} failed` : ''}${state.skippedCount ? `, ${state.skippedCount} skipped` : ''}.`
@@ -591,7 +624,7 @@ async function handleIncomingFiles(fileList) {
     }
 
     try {
-      const previewBlob = await createPreviewBlob(activeEntry.file);
+      const previewBlob = await createPreviewBlob(activeEntry.file, 420, getDecodeOptions());
       if (token !== state.selectionToken) {
         return;
       }
@@ -664,6 +697,21 @@ function initTheme() {
   const initialTheme = normalizeTheme(readStoredTheme());
   setTheme(initialTheme);
 
+  if (!featureEnabled('themeToggle')) {
+    if (toggle) {
+      toggle.hidden = true;
+      toggle.disabled = true;
+      toggle.setAttribute('aria-hidden', 'true');
+    }
+    return;
+  }
+
+  if (toggle) {
+    toggle.hidden = false;
+    toggle.disabled = false;
+    toggle.removeAttribute('aria-hidden');
+  }
+
   toggle?.addEventListener('click', () => {
     const nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
@@ -671,6 +719,7 @@ function initTheme() {
 }
 
 async function init() {
+  state.config = await loadAppConfig();
   initTheme();
 
   fileInput.accept = INPUT_ACCEPT;
@@ -679,7 +728,7 @@ async function init() {
   bindToolbarEvents();
 
   setupDropZone(dropZone, fileInput, handleIncomingFiles, {
-    isDisabled: () => state.isConverting,
+    isDisabled: () => featureEnabled('lockInputDuringConversion') && state.isConverting,
   });
 
   window.addEventListener('resize', () => {

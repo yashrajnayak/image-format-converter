@@ -253,12 +253,14 @@ function decodeViaImageElement(blob) {
   });
 }
 
-async function decodeBitmap(file) {
+async function decodeBitmap(file, options = {}) {
   if (!file) {
     throw new Error('No file provided.');
   }
 
-  const sourceBlob = isHeicLikeFile(file) ? await transcodeHeicToPngBlob(file) : file;
+  const isHeicFile = isHeicLikeFile(file);
+  const shouldUseHeicDecoder = options.enableHeicDecoder !== false;
+  const sourceBlob = isHeicFile && shouldUseHeicDecoder ? await transcodeHeicToPngBlob(file) : file;
 
   try {
     if (typeof createImageBitmap === 'function') {
@@ -270,8 +272,10 @@ async function decodeBitmap(file) {
     try {
       return await decodeViaImageElement(sourceBlob);
     } catch {
-      const formatHint = isHeicLikeFile(file)
-        ? 'HEIC/HEIF'
+      const formatHint = isHeicFile
+        ? shouldUseHeicDecoder
+          ? 'HEIC/HEIF'
+          : 'HEIC/HEIF (decoder disabled by configuration)'
         : isAvifLikeFile(file)
           ? 'AVIF'
           : 'image';
@@ -280,8 +284,8 @@ async function decodeBitmap(file) {
   }
 }
 
-export async function measureImageFile(file) {
-  const decoded = await decodeBitmap(file);
+export async function measureImageFile(file, options = {}) {
+  const decoded = await decodeBitmap(file, options);
 
   try {
     return {
@@ -402,8 +406,8 @@ export function getOutputFormatById(formatId, formats) {
   return direct || formats[0];
 }
 
-export async function createPreviewBlob(file, maxEdge = 420) {
-  const decoded = await decodeBitmap(file);
+export async function createPreviewBlob(file, maxEdge = 420, options = {}) {
+  const decoded = await decodeBitmap(file, options);
 
   try {
     const maxDimension = Math.max(decoded.width, decoded.height);
@@ -419,12 +423,12 @@ export async function createPreviewBlob(file, maxEdge = 420) {
   }
 }
 
-export async function convertImageFile(file, { format }) {
+export async function convertImageFile(file, { format, decodeOptions } = {}) {
   if (!format) {
     throw new Error('No output format selected.');
   }
 
-  const decoded = await decodeBitmap(file);
+  const decoded = await decodeBitmap(file, decodeOptions);
 
   try {
     const canvas = drawBitmapToCanvas(decoded.source, decoded.width, decoded.height);

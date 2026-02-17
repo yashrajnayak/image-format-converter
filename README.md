@@ -16,6 +16,7 @@ Browser-only image converter for single or batch image conversion across popular
 - Tile-based preview with inline download actions for multi-file conversions
 - Bottom action button switches from **Convert** to **Download** / **Download All**
 - Light/Dark theme toggle with `data-theme` on `<html>`
+- Runtime feature flags + guardrail limits via JSON config
 - Local-only processing (no server upload)
 
 ## Supported formats
@@ -34,6 +35,8 @@ UI footer format summary:
 - `favicon.svg` — app favicon
 - `styles.css` — app-specific styling using design-system tokens
 - `vendor/yashrajnayak-design-system.css` — bundled design system
+- `config/app-config.json` — runtime feature flags and selection limits
+- `js/app-config.js` — config loader + normalization
 - `js/main.js` — app state, events, conversion flow
 - `js/converter.js` — format detection and image conversion pipeline
 - `js/ui.js` — drop-zone and preview tile UI helpers
@@ -55,6 +58,19 @@ python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000`.
+
+## Runtime configuration
+
+Update `config/app-config.json` to change behavior without touching app logic:
+
+- `features.themeToggle` — show/hide theme toggle
+- `features.singleFileFormatFiltering` — remove same source format from **Convert To** for single-file mode
+- `features.selectionLimits` — enable/disable selection guardrail checks
+- `features.lockInputDuringConversion` — prevent new uploads while conversion is in progress
+- `features.tileDownloads` — show inline tile download buttons after conversion
+- `features.bulkDownload` — enable **Download/Download All** action mode
+- `features.heicDecoder` — enable runtime HEIC decoder usage
+- `limits.maxFiles`, `limits.maxTotalBytes`, `limits.maxTotalMegapixels` — batch guardrails
 
 ## Design system usage
 

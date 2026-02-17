@@ -1,0 +1,16 @@
+{
+  "features": {
+    "themeToggle": true,
+    "singleFileFormatFiltering": true,
+    "selectionLimits": true,
+    "lockInputDuringConversion": true,
+    "tileDownloads": true,
+    "bulkDownload": true,
+    "heicDecoder": true
+  },
+  "limits": {
+    "maxFiles": 30,
+    "maxTotalBytes": 104857600,
+    "maxTotalMegapixels": 120
+  }
+}
