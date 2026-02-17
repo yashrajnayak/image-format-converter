@@ -302,18 +302,25 @@ body {
 }
 
 .app-footer {
-  width: min(980px, 100%);
+  width: 100%;
   text-align: center;
+  margin-top: 4rem;
+  padding: 3.75rem 1.5rem 2.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.app-footer__content {
+  width: min(820px, 100%);
+  margin: 0 auto;
   display: grid;
-  gap: 0.25rem;
-  padding-bottom: 0.35rem;
+  gap: 0.42rem;
 }
 
 .app-footer__line {
   margin: 0;
-  font-size: 0.89rem;
+  font-size: 0.94rem;
   color: var(--ys-color-text-muted);
-  line-height: 1.35;
+  line-height: 1.5;
 }
 
 .app-footer__label {
@@ -326,8 +333,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
+}
+
+.app-footer__line--links {
+  margin-top: 0.85rem;
+}
+
+.app-footer__line--credits {
+  margin-top: 1.3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  opacity: 0.88;
 }
 
 .app-footer__separator {
@@ -335,13 +353,44 @@ body {
 }
 
 .app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0 1rem;
+  border-radius: var(--ys-radius-full);
+  background: #f1f5f9;
+  color: var(--ys-color-text);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--ys-transition);
+}
+
+[data-theme="dark"] .app-footer__link {
+  background: var(--ys-color-surface);
+}
+
+.app-footer__link:hover,
+.app-footer__link:focus-visible {
+  text-decoration: none;
+  background: var(--ys-color-primary);
+  color: var(--ys-color-on-primary);
+  transform: translateY(-2px);
+}
+
+#repo-stars {
+  color: var(--ys-color-text-muted);
+  font-weight: 500;
+}
+
+.app-footer__text-link {
   color: var(--ys-color-primary);
   text-decoration: none;
   font-weight: 600;
 }
 
-.app-footer__link:hover,
-.app-footer__link:focus-visible {
+.app-footer__text-link:hover,
+.app-footer__text-link:focus-visible {
   text-decoration: underline;
 }
 
@@ -369,5 +418,20 @@ body {
 
   .app-footer__line {
     font-size: 0.82rem;
+  }
+
+  .app-footer {
+    margin-top: 3rem;
+    padding: 2.8rem 1rem 1.7rem;
+  }
+
+  .app-footer__link {
+    min-height: 2.15rem;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .app-footer__separator {
+    display: none;
   }
 }
