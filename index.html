@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AVIF to PNG Converter</title>
+    <title>Image Format Converter</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -12,38 +13,73 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <button class="ys-theme-switch" id="themeSwitch" aria-label="Toggle dark/light theme">
+      <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    </button>
+
     <main class="app">
+      <header class="app-hero">
+        <h1 class="app-title ys-page-title">Image Format Converter</h1>
+        <p class="app-subtitle ys-page-subtitle">Convert one or many images between popular formats in your browser.</p>
+      </header>
+
       <section
         class="drop-zone"
         id="drop-zone"
         role="button"
         tabindex="0"
-        aria-label="Select AVIF files"
+        aria-label="Select image files"
       >
-        <div class="drop-zone__hero">
-          <h1 class="drop-zone__title ys-page-title">AVIF to PNG Converter</h1>
-          <p class="drop-zone__sub ys-page-subtitle">Convert one or many AVIF files in your browser.</p>
-          <p class="drop-zone__hint">Drop files anywhere on this page or click to select.</p>
+        <div class="drop-zone__empty" id="drop-zone-empty">
+          <p class="drop-zone__hint">Drop image files here or click to select.</p>
         </div>
+        <div class="drop-zone__preview" id="drop-zone-preview" aria-live="polite"></div>
         <input
           id="file-input"
           class="file-input"
           type="file"
-          accept=".avif,image/avif"
+          accept="image/*"
           multiple
         />
-        <div class="drop-zone__panel">
-          <div class="toolbar ys-card">
-            <div class="toolbar__actions">
-              <button id="convert-btn" type="button" class="ys-button ys-button--primary" disabled>Convert</button>
-              <button id="clear-btn" type="button" class="ys-button ys-button--secondary" disabled>Clear</button>
-              <button id="theme-btn" type="button" class="ys-button ys-button--ghost">Dark Theme</button>
-            </div>
-            <p id="status" aria-live="polite">Pick one or more AVIF files to begin.</p>
+      </section>
+
+      <section class="app-panel">
+        <div class="toolbar">
+          <div class="toolbar__actions">
+            <label class="toolbar__format" id="format-control" for="format-select" hidden>
+              <span class="toolbar__format-label">Convert To</span>
+              <select id="format-select" class="toolbar__format-select" aria-label="Output format"></select>
+            </label>
+            <button id="convert-btn" type="button" class="ys-button ys-button--primary" disabled hidden>Convert</button>
+            <button id="clear-btn" type="button" class="ys-button ys-button--secondary" disabled hidden>Clear</button>
           </div>
-          <section id="results" class="results" aria-live="polite"></section>
+          <p id="status" aria-live="polite"></p>
         </div>
       </section>
+
+      <footer class="app-footer" aria-label="Supported formats">
+        <p class="app-footer__line">
+          <span class="app-footer__label">Input formats:</span>
+          PNG, JPG/JPEG/JFIF, WebP, APNG, GIF, BMP, ICO, AVIF/AVIFS, HEIC/HEIF/HIEC/HIC/HIF, TIFF, SVG.
+        </p>
+        <p class="app-footer__line">
+          <span class="app-footer__label">Output formats:</span>
+          PNG, JPEG, WebP (browser-dependent).
+        </p>
+      </footer>
     </main>
 
     <script type="module" src="./js/main.js"></script>

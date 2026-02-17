@@ -1,39 +1,54 @@
-# AVIF to PNG Converter
+# Image Format Converter
 
-Minimal browser-only AVIF to PNG converter built with plain HTML, CSS, and JavaScript.
+Browser-only image converter for single or batch image conversion across popular formats, built with plain HTML, CSS, and JavaScript.
 
 <img width="1660" height="999" alt="image" src="https://github.com/user-attachments/assets/f50596e7-d49a-40d4-abb6-3bc7ded2f5d9" />
 
 ## Features
 
-- Full-page drop/upload area
-- Preview-first flow (shows selected files before conversion)
-- Manual **Convert** button (no auto-convert on upload)
-- Light/Dark theme toggle using `data-theme` on `<html>`
-- Batch conversion
+- Drag/drop or click-to-upload for multiple files
+- Preview-first flow in a fixed-size drop zone
+- Convert between popular formats in-browser
+- Dynamic output format support (based on browser encoding capability)
+- UI footer lists supported input and output formats
+- For a single uploaded image, its current format is automatically removed from **Convert To**
+- `Convert To`, `Convert`, and `Clear` controls appear only after files are uploaded
+- Tile-based preview with inline download actions for multi-file conversions
+- Bottom action button switches from **Convert** to **Download** / **Download All**
+- Light/Dark theme toggle with `data-theme` on `<html>`
 - Local-only processing (no server upload)
+
+## Supported formats
+
+Input formats (selection filter + best-effort decode): `PNG`, `JPG/JPEG/JFIF`, `WebP`, `APNG`, `GIF`, `BMP`, `ICO`, `AVIF/AVIFS`, `HEIC/HEIF/HIEC/HIC/HIF`, `TIFF`, `SVG`, plus `image/*`.
+
+Output formats (browser-dependent): `PNG`, `JPEG`, `WebP`.
+
+UI footer format summary:
+- Input: `PNG`, `JPG/JPEG/JFIF`, `WebP`, `APNG`, `GIF`, `BMP`, `ICO`, `AVIF/AVIFS`, `HEIC/HEIF/HIEC/HIC/HIF`, `TIFF`, `SVG`
+- Output: `PNG`, `JPEG`, `WebP` (browser-dependent)
 
 ## Project structure
 
-- `index.html` — app markup and controls
-- `styles.css` — full-screen layout and UI styling
-- `vendor/yashrajnayak-design-system.css` — copied design-system bundle for static hosting
-- `js/main.js` — app workflow and event orchestration
-- `js/converter.js` — AVIF decode + PNG conversion + preview generation
-- `js/ui.js` — drop-zone handlers, row rendering, status updates
-- `js/utils.js` — utility helpers
+- `index.html` — app layout and controls
+- `favicon.svg` — app favicon
+- `styles.css` — app-specific styling using design-system tokens
+- `vendor/yashrajnayak-design-system.css` — bundled design system
+- `js/main.js` — app state, events, conversion flow
+- `js/converter.js` — format detection and image conversion pipeline
+- `js/ui.js` — drop-zone and preview tile UI helpers
+- `js/utils.js` — shared utility helpers
 
 ## How to use
 
-1. Drop `.avif` files anywhere in the browser area, or click to select files.
-2. Wait for previews to appear so you can confirm selected files.
-3. Click **Convert** to start conversion.
-4. Download each converted PNG from its result row.
-5. Click **Clear** to reset the queue and results.
+1. Drop image files into the upload area, or click it to select files.
+2. Choose the target format from **Convert To**.
+3. Click **Convert**.
+4. Click **Download** (single) or **Download All** (multiple), or use per-tile download actions for multi-file output.
 
 ## Run locally
 
-Use a local static server (recommended for ES modules), for example:
+Use a local static server (recommended for ES modules):
 
 ```bash
 python3 -m http.server 8000
@@ -43,31 +58,15 @@ Then open `http://localhost:8000`.
 
 ## Design system usage
 
-This app uses `ys-` classes and `--ys-*` tokens from a local design stylesheet that is bundled in this repo.
+This app follows the vendor design system through:
 
-Required fonts are loaded in `index.html`, and the design stylesheet is loaded from:
-
-- `vendor/yashrajnayak-design-system.css`
-
-Theme switching is handled by setting:
-
-- `document.documentElement.setAttribute('data-theme', 'dark')`
-
-## GitHub Pages deployment
-
-1. Keep all files at repository root.
-2. Commit and push.
-3. Open repository settings -> **Pages**.
-4. Set source to your default branch and root (`/`) folder.
-5. Open the published Pages URL.
+- `ys-` utility/component classes
+- `--ys-*` tokens for colors, spacing, radius, shadow, and typography
+- `vendor/yashrajnayak-design-system.css` as the source of shared visual primitives
 
 ## Browser support
 
-- Requires a modern browser with `createImageBitmap`, canvas, and File APIs.
-- If previews or conversion fail, update to latest Chrome, Firefox, or Safari.
-
-## Notes
-
-- Files are processed entirely in the browser.
-- Large images/batches may use significant memory.
-- No npm modules or build step are required to run the app.
+- Requires modern browser APIs: `createImageBitmap`, canvas, File APIs.
+- Output format availability is detected at runtime and shown in the format selector.
+- AVIF decode falls back to `<img>` decode path when needed.
+- HEIC/HEIF/HIEC decode uses a runtime-loaded `heic2any` decoder script for broader browser support.

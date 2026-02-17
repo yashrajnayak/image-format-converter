@@ -1,11 +1,26 @@
-export function isAvifFile(file) {
-  if (!file || !file.name) {
-    return false;
+export function getFileExtension(fileName = '') {
+  const normalized = String(fileName).trim().toLowerCase();
+  const lastDot = normalized.lastIndexOf('.');
+  if (lastDot === -1 || lastDot === normalized.length - 1) {
+    return '';
   }
+  return normalized.slice(lastDot + 1);
+}
 
-  const type = (file.type || '').toLowerCase();
-  const name = file.name.toLowerCase();
-  return type === 'image/avif' || name.endsWith('.avif');
+export function stripFileExtension(fileName = '') {
+  const normalized = String(fileName);
+  const lastDot = normalized.lastIndexOf('.');
+  if (lastDot <= 0) {
+    return normalized;
+  }
+  return normalized.slice(0, lastDot);
+}
+
+export function clamp(value, min, max) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, value));
 }
 
 export function formatBytes(bytes) {
@@ -27,4 +42,10 @@ export function formatBytes(bytes) {
   }
 
   return `${value.toFixed(1)} ${units[index]}`;
+}
+
+export function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
