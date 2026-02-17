@@ -2,7 +2,7 @@
 
 Browser-only image converter for single or batch image conversion across popular formats, built with plain HTML, CSS, and JavaScript.
 
-<img width="1660" height="999" alt="image" src="https://github.com/user-attachments/assets/f50596e7-d49a-40d4-abb6-3bc7ded2f5d9" />
+<img width="1389" height="940" alt="image" src="https://github.com/user-attachments/assets/b054dd1b-79ff-4f42-ba9b-120b34a9acb0" />
 
 ## Features
 
